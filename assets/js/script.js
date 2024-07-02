@@ -1,35 +1,88 @@
-// Retrieve tasks and nextId from localStorage
-let taskList = JSON.parse(localStorage.getItem("tasks"));
-let nextId = JSON.parse(localStorage.getItem("nextId"));
+let taskList = JSON.parse(localStorage.getItem("tasks")) || [];
+let nextId = JSON.parse(localStorage.getItem("nextId")) || 1;
 
-// Todo: create a function to generate a unique task id
 function generateTaskId() {
+  let newId = nextId;
   nextId++;
-  return nextId;
+  return newId;
 }
-// Todo: create a function to create a task card
+
 function createTaskCard(task) {
-  const taskCard = document.createElement("div");
+  let taskCard = document.createElement("div");
   taskCard.classList.add("task-card");
+
   taskCard.innerHTML = `
-    <div class="task-id">${task.id}</div>
-    <div class="task-title">${task.title}</div>
-    <div class="task-description">${task.description}</div>
-    <div class="task-due-date">${task.dueDate}</div>
-  `;
-  return taskCard;
+      <div class="task-id">${task.id}</div>
+      <div class="task-name">${task.name}</div>
+      <div class="task-description">${task.description}</div>
+      <div class="task-due-date">Due Date: ${task.dueDate}</div>
+      <button class="delete-task-btn">Delete</button>
+    `;
+
+  document.getElementById("task-list").appendChild(taskCard);
 }
-// Todo: create a function to render the task list and make cards draggable
-function renderTaskList() {}
 
-// Todo: create a function to handle adding a new task
-function handleAddTask(event) {}
+function handleAddTask(event) {
+  event.preventDefault();
 
-// Todo: create a function to handle deleting a task
-function handleDeleteTask(event) {}
+  let taskName = document.getElementById("task-name-input").value;
+  let taskDescription = document.getElementById("task-description-input").value;
+  let dueDate = document.getElementById("due-date-input").value;
 
-// Todo: create a function to handle dropping a task into a new status lane
-function handleDrop(event, ui) {}
+  let newTask = {
+    id: generateTaskId(),
+    name: taskName,
+    description: taskDescription,
+    dueDate: dueDate,
+  };
 
-// Todo: when the page loads, render the task list, add event listeners, make lanes droppable, and make the due date field a date picker
-$(document).ready(function () {});
+  taskList.push(newTask);
+
+  localStorage.setItem("tasks", JSON.stringify(taskList));
+
+  createTaskCard(newTask);
+}
+
+function renderTaskList() {
+  taskList.forEach((task) => {
+    createTaskCard(task);
+  });
+
+  $(".task-card").draggable({
+    revert: "invalid",
+    cursor: "move",
+    containment: "document",
+    scroll: false,
+  });
+
+  $(".status-lane").droppable({
+    drop: handleDrop,
+  });
+}
+
+function handleDrop(event, ui) {
+  let droppedTaskId = ui.draggable.find(".task-id").text();
+  let newStatusLane = $(this).attr("id");
+
+  let droppedTask = taskList.find((task) => task.id == droppedTaskId);
+
+  droppedTask.status = newStatusLane;
+
+  ui.draggable.appendTo($(this));
+}
+
+$("#add-task-button").on("click", function () {
+  $("#formModal").modal("show");
+});
+
+$(document).ready(function () {
+  renderTaskList();
+
+  $("#add-task-form").submit(handleAddTask);
+
+  $(".status-lane").droppable({
+    drop: handleDrop,
+  });
+
+  $("#due-date-input").datepicker();
+});
